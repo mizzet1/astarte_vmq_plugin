@@ -1,5 +1,14 @@
 FROM --platform=${BUILDPLATFORM} hexpm/elixir:1.15.5-erlang-26.1-debian-bullseye-20230612-slim AS builder
 
+# Debian 11 is EOL and its pool files are no longer served from deb.debian.org
+# (every bullseye-security .deb 404s), so pin apt to the snapshot.debian.org
+# repository this base image was built against. Both stages need this, and they
+# pin different snapshots - the lines are already in each image's sources.list,
+# just commented out.
+RUN sed -i -e 's|^# deb http://snapshot|deb http://snapshot|' \
+           -e 's|^deb http://deb.debian.org|# deb http://deb.debian.org|' /etc/apt/sources.list \
+  && echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/10-no-check-valid-until
+
 # install build dependencies
 # --allow-releaseinfo-change allows to pull from 'oldstable'
 RUN apt-get update --allow-releaseinfo-change -y \
@@ -55,6 +64,15 @@ COPY docker/bin/rand_cluster_node.escript vernemq/_build/default/rel/vernemq/bin
 
 # Note: it is important to keep Debian versions in sync, or incompatibilities between libcrypto will happen
 FROM --platform=${BUILDPLATFORM} debian:bullseye-slim@sha256:c2c58af6e3ceeb3ed40adba85d24cfa62b7432091597ada9b76b56a51b62f4c6
+
+# Debian 11 is EOL and its pool files are no longer served from deb.debian.org
+# (every bullseye-security .deb 404s), so pin apt to the snapshot.debian.org
+# repository this base image was built against. Both stages need this, and they
+# pin different snapshots - the lines are already in each image's sources.list,
+# just commented out.
+RUN sed -i -e 's|^# deb http://snapshot|deb http://snapshot|' \
+           -e 's|^deb http://deb.debian.org|# deb http://deb.debian.org|' /etc/apt/sources.list \
+  && echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/10-no-check-valid-until
 
 # Set the locale
 ENV LANG=C.UTF-8
